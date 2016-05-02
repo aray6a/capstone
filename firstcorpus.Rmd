@@ -1,0 +1,81 @@
+---
+title: "International Address Check"
+author: "Alim Ray"
+output: pdf_document
+job: DePaul University
+---
+
+```{r code, echo = F}
+
+
+library(dplyr)
+library(ggplot2)
+library(tm)
+
+#Remove stop words, white space, punctuation, lower case, and stem document
+cleanCorpus <- function(vc) {
+	vc <- tm_map( vc, content_transformer(tolower) )
+	vc <- tm_map( vc, removeWords, stopwords("SMART") )
+	vc <- tm_map( vc, removeWords, stopwords("english") )
+	vc <- tm_map( vc, stripWhitespace )
+	vc <- tm_map( vc, removePunctuation )
+	vc <- tm_map( vc, stemDocument )
+	tdm <- TermDocumentMatrix(vc)
+	inspectedTDM <- inspect( removeSparseTerms(tdm, 0.4) )
+	tdmFrame <- data.frame( dimnames(inspectedTDM), inspectedTDM )
+	names(tdmFrame) <- c( 'Terms', 'Docs', 'Counts')
+	tdmFrame
+	}
+
+#Function which loads all files in data/test folder into a Virtual Corpus.  Then a TermDocumentMatrix is created from the cleaned corpus.  The inspected results of the matrix is converted to a data frame.
+firstC <- function() {
+	vc <- VCorpus( DirSource("data/test", encoding = "UTF-8"), readerControl = list(language = "eng"))
+	cleanCorpus(vc)
+}
+
+#Read random lines from text file
+readRandom <- function(fileName) {
+	set.seed(1234)
+	con <- file(fileName, "r")
+	l <- readLines(con, 1)
+	randomLines <- c(l)
+	while ( length(l) > 0 ) {
+		l <- readLines(con, 1)
+		if ( runif(1,1,10) < 2.0 ) {
+			randomLines <- c( randomLines, l)
+		}
+	}
+	close(con)
+	randomLines
+}
+
+#Create test file given original file
+writeRandom <- function(fileNameIn, fileNameOut = "short.txt") {
+	lines <- readRandom(fileNameIn)
+	writeLines( lines, paste("data/test/", fileNameOut, sep = '' ) )
+}
+```
+## Summary
+
+I've explored the three English files(all files in the en_us folder of the zip file) in the test data.  I chose only one folder to explore because I needed to develop techniques to deal with the large sizes of these files.
+
+## Description of Technique
+
+I first calculated line counts and word counts.
+
+* en_US.blogs.txt -- 899,288 lines; 37,334,089 words
+* en_uS_news.txt -- 1,010,242 lines; 34,372,530 words
+* en_US.twitter.txt -- 2,360,148 lines; 30,373,582 words
+
+Since these files are large I created an R procedure to randomly download approximately 10% of the lines of each file.  I then built a DocumentTemplateMatrix and plotted the results
+
+
+## Exploration
+```{r graphs}
+results <- firstC()
+results %>% filter( Counts > 100 ) %>% arrange( desc(Counts) )
+results0 <- results %>% filter( Counts <= 500 ) %>% arrange( desc(Counts) )
+results500 <- results %>% filter( Counts > 500 ) %>% arrange( desc(Counts) )
+ggplot(results0) + geom_histogram( aes( x = Counts), binwidth = 50 )
+ggplot(results500) + geom_histogram( aes( x = Counts), binwidth = 50 )
+```

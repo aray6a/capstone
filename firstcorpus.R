@@ -1,27 +1,24 @@
 library(tm)
 
-firstC <- function() {
-	vc <- VCorpus( DirSource("data/unzipped/final/test", encoding = "UTF-8"), readerControl = list(language = "eng"))
-	vc <- tm_map( vc, removeWords, stopwords("english") )
-	vc <- tm_map( vc, stripWhitespace )
-	vc <- tm_map( vc, removePunctuation )
-	vc <- tm_map( vc, content_transformer(tolower) )
-	vc <- tm_map( vc, stemDocument )
-	inspect(vc)
-	dtm <- TermDocumentMatrix(vc)
-	inspect( removeSparseTerms(dtm, 0.4) )
-}
-
 #Remove stop words, white space, punctuation, lower case, and stem document
 cleanCorpus <- function(vc) {
+	vc <- tm_map( vc, content_transformer(tolower) )
+	vc <- tm_map( vc, removeWords, stopwords("SMART") )
 	vc <- tm_map( vc, removeWords, stopwords("english") )
 	vc <- tm_map( vc, stripWhitespace )
 	vc <- tm_map( vc, removePunctuation )
-	vc <- tm_map( vc, content_transformer(tolower) )
 	vc <- tm_map( vc, stemDocument )
-	inspect(vc)
-	dtm <- TermDocumentMatrix(vc)
+	tdm <- TermDocumentMatrix(vc)
+	inspectedTDM <- inspect( removeSparseTerms(tdm, 0.4) )
+	tdmFrame <- data.frame( dimnames(inspectedTDM), inspectedTDM )
+	names(tdmFrame) <- c( 'Terms', 'Docs', 'Counts')
+	tdmFrame
 	}
+
+firstC <- function() {
+	vc <- VCorpus( DirSource("data/test", encoding = "UTF-8"), readerControl = list(language = "eng"))
+	cleanCorpus(vc)
+}
 
 readRandom <- function(fileName) {
 	set.seed(1234)
@@ -36,4 +33,10 @@ readRandom <- function(fileName) {
 	}
 	close(con)
 	randomLines
+}
+
+#Create test file given original file
+writeRandom <- function(fileNameIn, fileNameOut = "short.txt") {
+	lines <- readRandom(fileNameIn)
+	writeLines( lines, paste("data/test/", fileNameOut, sep = '' ) )
 }
